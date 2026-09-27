@@ -14,7 +14,7 @@ public class AppConfig {
     // AI — any OpenAI-compatible provider (OpenRouter, OpenAI, Gemini, Groq, Together, etc.)
     private String aiBaseUrl = "https://openrouter.ai/api/v1";
     private String aiApiKey = "";
-    private String aiModel = "openai/gpt-4o-mini";
+    private String aiModel = "openrouter/free";
     private int aiFreeMsgsPerDay = 20;
     private int aiPremiumMsgsPerDay = 200;
 

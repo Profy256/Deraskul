@@ -8,7 +8,7 @@ const PROVIDER_PRESETS: Record<string, { baseUrl: string; model: string; label: 
   ANTHROPIC: { baseUrl: "https://api.anthropic.com/v1", model: "claude-sonnet-4-20250514", label: "Anthropic (Claude)" },
   GEMINI: { baseUrl: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash", label: "Google Gemini" },
   DEEPSEEK: { baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat", label: "DeepSeek" },
-  OPENROUTER: { baseUrl: "https://openrouter.ai/api/v1", model: "openrouter/auto", label: "OpenRouter (auto)" },
+  OPENROUTER: { baseUrl: "https://openrouter.ai/api/v1", model: "openrouter/free", label: "OpenRouter (free auto)" },
   CUSTOM: { baseUrl: "", model: "", label: "Custom (OpenAI-compatible)" },
 };
 
@@ -290,7 +290,7 @@ export default function AiSettingsPanel() {
                   <option value="ANTHROPIC">Anthropic (Claude)</option>
                   <option value="GEMINI">Google Gemini</option>
                   <option value="DEEPSEEK">DeepSeek</option>
-                  <option value="OPENROUTER">OpenRouter (auto)</option>
+                  <option value="OPENROUTER">OpenRouter (free auto-router)</option>
                   <option value="CUSTOM">Custom (OpenAI-compatible)</option>
                 </select>
               </div>
@@ -336,6 +336,13 @@ export default function AiSettingsPanel() {
                   onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
                 />
+                {form.providerType === "OPENROUTER" && (
+                  <div className="font-mono text-xs mt-1" style={{ color: "var(--text-faint)" }}>
+                    {form.defaultModel === "openrouter/free"
+                      ? "openrouter/free — auto-routes to OpenRouter's free (:free) models, $0, no credits needed."
+                      : "Use openrouter/free to auto-route to free models — openrouter/auto picks paid models and returns 402 without credits."}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">

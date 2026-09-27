@@ -97,6 +97,18 @@ function errorCodeOf(body: unknown): string | null {
   return null;
 }
 
+async function apiFetchRaw(path: string, options: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${API_BASE}${path}`, options);
+  } catch {
+    throw new ApiError(
+      0,
+      `Cannot reach the API at ${API_BASE} — the backend is not running or unreachable.`,
+      "network_error"
+    );
+  }
+}
+
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -106,7 +118,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const token = getAccessToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  let res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let res = await apiFetchRaw(path, { ...options, headers });
 
   // Try transparent refresh on 401
   if (res.status === 401 && token) {
@@ -116,8 +128,12 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
         const newTokens = await refreshTokens(tokens.refreshToken);
         saveTokens(newTokens);
         headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
-        res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-      } catch {
+        res = await apiFetchRaw(path, { ...options, headers });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 0) throw err;
+        if (err instanceof Error && err.message.startsWith("Cannot reach the API")) {
+          throw new ApiError(0, err.message, "network_error");
+        }
         clearTokens();
         if (typeof window !== "undefined") window.location.reload();
         throw new ApiError(401, "Session expired", "unauthorized");

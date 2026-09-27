@@ -61,12 +61,16 @@ async function tryRefresh(): Promise<boolean> {
 }
 
 async function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const doFetch = (token: string | null) => {
+  const doFetch = async (token: string | null) => {
     const headers: Record<string, string> = {
       ...((init.headers as Record<string, string>) ?? {}),
     };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    return fetch(`${API_BASE}${path}`, { ...init, headers });
+    try {
+      return await fetch(`${API_BASE}${path}`, { ...init, headers });
+    } catch {
+      throw new Error(`Cannot reach the API at ${API_BASE} — the backend is not running or unreachable.`);
+    }
   };
 
   const hadSession = Boolean(getToken() || getRefreshToken());
@@ -102,6 +106,22 @@ function apiErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
+function statusMessage(status: number): string {
+  switch (status) {
+    case 400: return "The request was invalid — check the highlighted fields and try again.";
+    case 401: return "Your session has expired — please sign in again.";
+    case 403: return "You don't have permission to do this. If you just signed in, your account may not be an admin.";
+    case 404: return "Not found — this item may have been deleted.";
+    case 409: return "This conflicts with something that already exists (e.g. a duplicate slug).";
+    case 413: return "The content is too large to save.";
+    case 415: return "Unsupported file type.";
+    case 429: return "Too many requests — wait a moment and try again.";
+    default:
+      if (status >= 500) return "The server hit an unexpected error — please try again.";
+      return `Request failed (HTTP ${status}).`;
+  }
+}
+
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
 }
@@ -119,8 +139,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(apiErrorMessage(error, `HTTP ${res.status}`));
+    const body = await res.json().catch(() => null);
+    throw new Error(apiErrorMessage(body, statusMessage(res.status)));
   }
 
   return res.json();
@@ -357,8 +377,8 @@ export const api = {
       });
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: res.statusText }));
-        throw new Error(apiErrorMessage(error, `HTTP ${res.status}`));
+        const body = await res.json().catch(() => null);
+        throw new Error(apiErrorMessage(body, statusMessage(res.status)));
       }
 
       return res.json() as Promise<ImportFileResponse>;

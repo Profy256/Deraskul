@@ -66,6 +66,15 @@ export function getAccessToken(): string | null {
   return getTokens()?.accessToken ?? null;
 }
 
+/** Wraps fetch so a dead backend produces an actionable message, not "Failed to fetch". */
+async function authFetch(path: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${API_BASE}${path}`, init);
+  } catch {
+    throw new Error(`Cannot reach the API at ${API_BASE} — the backend is not running or unreachable.`);
+  }
+}
+
 export function apiErrorMessage(body: unknown, fallback: string): string {
   if (body && typeof body === "object") {
     const b = body as { message?: unknown; error?: unknown };
@@ -84,7 +93,7 @@ export async function register(
   email: string,
   password: string
 ): Promise<TokenPair> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+  const res = await authFetch("/api/v1/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password }),
@@ -101,7 +110,7 @@ export async function login(
   email: string,
   password: string
 ): Promise<TokenPair> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+  const res = await authFetch("/api/v1/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -115,7 +124,7 @@ export async function login(
 }
 
 export async function refreshTokens(refreshToken: string): Promise<TokenPair> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+  const res = await authFetch("/api/v1/auth/refresh", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken }),
